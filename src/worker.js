@@ -328,6 +328,11 @@ export default {
   async fetch(request) {
     const url = new URL(request.url);
     
+    // 强制 HTTPS
+    if (url.protocol === 'http:') {
+      return Response.redirect(`https://${url.host}${url.pathname}${url.search}`, 301);
+    }
+
     // 处理 API 请求
     if (url.pathname === '/api/validate') {
       const targetUrl = url.searchParams.get('url');
@@ -358,8 +363,15 @@ export default {
       }
     }
 
+    // 修改 convertGithubUrl 函数中的正则表达式
+    const htmlWithFixedRegex = htmlContent.replace(
+      /const githubRegex = .*?;[\s\S]*?const rawRegex = .*?;/,
+      `const githubRegex = /github\\.com\\/([^\\/]+)\\/([^\\/]+)\\/blob\\/([^\\/]+)\\/(.+)/;
+      const rawRegex = /raw\\.githubusercontent\\.com\\/([^\\/]+)\\/([^\\/]+)\\/(?:refs\\/heads\\/)?([^\\/]+)\\/(.+)/;`
+    );
+
     // 返回主页
-    return new Response(htmlContent, {
+    return new Response(htmlWithFixedRegex, {
       headers: {
         'Content-Type': 'text/html;charset=UTF-8'
       }

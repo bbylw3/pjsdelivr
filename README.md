@@ -57,11 +57,14 @@
 ### NPM 包链接转换
 
 输入格式：
-package-name
-package-name@1.0.0
+
+  package-name
+  package-name@1.0.0
+
 转换后：
-https://cdn.jsdelivr.net/npm/package-name
-https://cdn.jsdelivr.net/npm/package-name@1.0.0
+
+  https://cdn.jsdelivr.net/npm/package-name
+  https://cdn.jsdelivr.net/npm/package-name@1.0.0
 
 ## 项目结构
 .

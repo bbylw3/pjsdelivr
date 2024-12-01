@@ -64,13 +64,16 @@
 - `https://cdn.jsdelivr.net/npm/package-name`
 - `https://cdn.jsdelivr.net/npm/package-name@1.0.0`
 
+
 ## 项目结构
+```plaintext
 .
-├── index.html # 静态部署版本
+├── index.html         # 静态部署版本
 ├── src/
-│ └── worker.js # Cloudflare Workers 版本
-├── wrangler.toml # Workers 配置文件
+│   └── worker.js      # Cloudflare Workers 版本
+├── wrangler.toml      # Workers 配置文件
 └── README.md
+
 
 ## 技术栈
 

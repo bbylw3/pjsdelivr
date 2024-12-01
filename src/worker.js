@@ -246,12 +246,15 @@ jquery@3.6.0"></textarea>
       }
 
       async function convertGithubUrl(url) {
-        const githubRegex = /github\.com\/([^\/]+)\/([^\/]+)\/blob\/([^\/]+)\/(.+)/;
-        const rawRegex = /raw\.githubusercontent\.com\/([^\/]+)\/([^\/]+)\/([^\/]+)\/(.+)/;
+        const githubRegex = /github\\.com\\/([^\\/]+)\\/([^\\/]+)\\/blob\\/([^\\/]+)\\/(.+)/;
+        const rawRegex = /raw\\.githubusercontent\\.com\\/([^\\/]+)\\/([^\\/]+)\\/(?:refs\\/heads\\/)?([^\\/]+)\\/(.+)/;
         
-        let match = url.match(githubRegex) || url.match(rawRegex);
+        let match = url.match(githubRegex);
         if (!match) {
-          return { error: "无效的 GitHub 链接格式" };
+          match = url.match(rawRegex);
+          if (!match) {
+            return { error: "无效的 GitHub 链接格式" };
+          }
         }
 
         const [_, user, repo, branch, path] = match;
@@ -328,11 +331,17 @@ export default {
   async fetch(request) {
     const url = new URL(request.url);
     
-    // 强制 HTTPS
-    if (url.protocol === 'http:') {
-      return Response.redirect(`https://${url.host}${url.pathname}${url.search}`, 301);
+    // 处理 CORS 预检请求
+    if (request.method === 'OPTIONS') {
+      return new Response(null, {
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type',
+        },
+      });
     }
-
+    
     // 处理 API 请求
     if (url.pathname === '/api/validate') {
       const targetUrl = url.searchParams.get('url');
@@ -363,17 +372,11 @@ export default {
       }
     }
 
-    // 修改 convertGithubUrl 函数中的正则表达式
-    const htmlWithFixedRegex = htmlContent.replace(
-      /const githubRegex = .*?;[\s\S]*?const rawRegex = .*?;/,
-      `const githubRegex = /github\\.com\\/([^\\/]+)\\/([^\\/]+)\\/blob\\/([^\\/]+)\\/(.+)/;
-      const rawRegex = /raw\\.githubusercontent\\.com\\/([^\\/]+)\\/([^\\/]+)\\/(?:refs\\/heads\\/)?([^\\/]+)\\/(.+)/;`
-    );
-
     // 返回主页
-    return new Response(htmlWithFixedRegex, {
+    return new Response(htmlContent, {
       headers: {
-        'Content-Type': 'text/html;charset=UTF-8'
+        'Content-Type': 'text/html;charset=UTF-8',
+        'Access-Control-Allow-Origin': '*'
       }
     });
   }

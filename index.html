@@ -263,10 +263,18 @@ jquery@3.6.0"
       }
 
       async function convertGithubUrl(url) {
-        const regex = /github\.com\/([^\/]+)\/([^\/]+)\/blob\/([^\/]+)\/(.+)/;
-        const match = url.match(regex);
+        // 支持两种格式的正则表达式
+        const githubRegex =
+          /github\.com\/([^\/]+)\/([^\/]+)\/blob\/([^\/]+)\/(.+)/;
+        const rawRegex =
+          /raw\.githubusercontent\.com\/([^\/]+)\/([^\/]+)\/(?:refs\/heads\/)?([^\/]+)\/(.+)/;
+
+        let match = url.match(githubRegex);
         if (!match) {
-          return { error: "无效的 GitHub 链接格式" };
+          match = url.match(rawRegex);
+          if (!match) {
+            return { error: "无效的 GitHub 链接格式" };
+          }
         }
 
         const [_, user, repo, branch, path] = match;

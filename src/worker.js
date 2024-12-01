@@ -13,7 +13,150 @@ const htmlContent = `<!DOCTYPE html>
         background-color: #0a0a0a;
         color: #ffffff;
       }
-      /* 这里是其他 CSS 样式... */
+
+      h1 {
+        text-align: center;
+        color: #ffffff;
+        font-size: 2.5em;
+        margin-bottom: 30px;
+      }
+
+      .ph-logo {
+        background-color: #000000;
+        padding: 10px 20px;
+        border-radius: 5px;
+        display: inline-block;
+      }
+
+      .ph-logo span {
+        color: #ffffff;
+      }
+
+      .ph-logo span.highlight {
+        color: #ff9900;
+        background-color: #000000;
+        padding: 3px 6px;
+        border-radius: 3px;
+      }
+
+      .container {
+        margin-top: 20px;
+        background-color: #1b1b1b;
+        padding: 20px;
+        border-radius: 8px;
+      }
+
+      textarea {
+        width: 100%;
+        height: 150px;
+        margin: 10px 0;
+        padding: 15px;
+        border: 2px solid #333;
+        border-radius: 4px;
+        background-color: #0a0a0a;
+        color: #ffffff;
+        font-size: 16px;
+      }
+
+      textarea:focus {
+        border-color: #ff9900;
+        outline: none;
+      }
+
+      button {
+        padding: 12px 25px;
+        color: #000000;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        margin-right: 10px;
+        font-weight: bold;
+        font-size: 16px;
+        text-transform: uppercase;
+      }
+
+      .primary-btn {
+        background-color: #ff9900;
+      }
+
+      .secondary-btn {
+        background-color: #ffffff;
+      }
+
+      button:hover {
+        opacity: 0.9;
+      }
+
+      .result-container {
+        margin-top: 20px;
+        border: 2px solid #333;
+        border-radius: 4px;
+        padding: 15px;
+        background-color: #0a0a0a;
+      }
+
+      .result-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 15px;
+        border-bottom: 1px solid #333;
+        background-color: #1b1b1b;
+        margin-bottom: 10px;
+        border-radius: 4px;
+      }
+
+      .result-item:last-child {
+        border-bottom: none;
+        margin-bottom: 0;
+      }
+
+      .copy-btn {
+        padding: 8px 15px;
+        font-size: 14px;
+        background-color: #ff9900;
+      }
+
+      .error {
+        color: #ff4444;
+        font-size: 14px;
+        margin-top: 5px;
+      }
+
+      .tabs {
+        margin-bottom: 20px;
+        display: flex;
+        gap: 10px;
+      }
+
+      .tab {
+        padding: 12px 25px;
+        background-color: #1b1b1b;
+        border: 2px solid #333;
+        color: #ffffff;
+        font-weight: bold;
+      }
+
+      .tab.active {
+        background-color: #ff9900;
+        border-color: #ff9900;
+        color: #000000;
+      }
+
+      h3 {
+        color: #ff9900;
+        margin-bottom: 15px;
+      }
+
+      .url-info {
+        font-size: 14px;
+        color: #999;
+      }
+
+      .cdn-url {
+        color: #ff9900;
+        word-break: break-all;
+      }
     </style>
 </head>
 <body>
@@ -50,35 +193,132 @@ jquery@3.6.0"></textarea>
     </div>
 
     <script>
-      // 这里是 JavaScript 代码
       let currentTab = "github";
 
       function switchTab(tab) {
-        // Tab 切换逻辑...
+        document.querySelectorAll(".tab").forEach((t) => t.classList.remove("active"));
+        document.querySelector(\`[onclick="switchTab('\${tab}')"]\`).classList.add("active");
+        
+        document.getElementById("github-tab").style.display = tab === "github" ? "block" : "none";
+        document.getElementById("npm-tab").style.display = tab === "npm" ? "block" : "none";
+        currentTab = tab;
       }
 
       async function validateUrl(url) {
-        // URL 验证逻辑...
+        try {
+          try {
+            const directResponse = await fetch(url, { method: "HEAD" });
+            return directResponse.ok;
+          } catch (directError) {
+            const workerUrls = [
+              "/api/validate",
+              "https://你的worker域名.workers.dev/api/validate",
+            ];
+
+            for (const workerUrl of workerUrls) {
+              try {
+                const response = await fetch(
+                  \`\${workerUrl}?url=\${encodeURIComponent(url)}\`
+                );
+                if (response.ok) {
+                  const data = await response.json();
+                  return data.valid;
+                }
+              } catch (e) {
+                continue;
+              }
+            }
+          }
+        } catch (error) {
+          console.error("Validation error:", error);
+        }
+        return false;
       }
 
       function copyToClipboard(text, element) {
-        // 复制功能逻辑...
+        navigator.clipboard.writeText(text).then(() => {
+          const originalText = element.textContent;
+          element.textContent = "已复制！";
+          setTimeout(() => {
+            element.textContent = originalText;
+          }, 1000);
+        });
       }
 
       async function convertGithubUrl(url) {
-        // GitHub URL 转换逻辑...
+        const githubRegex = /github\.com\/([^\/]+)\/([^\/]+)\/blob\/([^\/]+)\/(.+)/;
+        const rawRegex = /raw\.githubusercontent\.com\/([^\/]+)\/([^\/]+)\/([^\/]+)\/(.+)/;
+        
+        let match = url.match(githubRegex) || url.match(rawRegex);
+        if (!match) {
+          return { error: "无效的 GitHub 链接格式" };
+        }
+
+        const [_, user, repo, branch, path] = match;
+        const cdnUrl = \`https://cdn.jsdelivr.net/gh/\${user}/\${repo}@\${branch}/\${path}\`;
+        
+        const isValid = await validateUrl(cdnUrl);
+        if (!isValid) {
+          return { error: "链接验证失败，请确认资源是否存在" };
+        }
+
+        return { cdnUrl };
       }
 
       function convertNpmPackage(input) {
-        // NPM 包转换逻辑...
+        const [packageName, version] = input.split("@");
+        if (!packageName) {
+          return { error: "无效的 NPM 包格式" };
+        }
+        const cdnUrl = version
+          ? \`https://cdn.jsdelivr.net/npm/\${packageName}@\${version}\`
+          : \`https://cdn.jsdelivr.net/npm/\${packageName}\`;
+        return { cdnUrl };
       }
 
       async function convertAll() {
-        // 批量转换逻辑...
+        const resultContainer = document.getElementById("result-container");
+        resultContainer.innerHTML = "";
+
+        const input = currentTab === "github"
+          ? document.getElementById("github-input").value
+          : document.getElementById("npm-input").value;
+
+        const urls = input.split("\\n").filter((url) => url.trim());
+
+        for (const url of urls) {
+          const result = currentTab === "github"
+            ? await convertGithubUrl(url.trim())
+            : convertNpmPackage(url.trim());
+
+          const resultItem = document.createElement("div");
+          resultItem.className = "result-item";
+
+          if (result.error) {
+            resultItem.innerHTML = \`
+              <div>
+                <div class="url-info">原始链接: \${url}</div>
+                <div class="error">\${result.error}</div>
+              </div>
+            \`;
+          } else {
+            resultItem.innerHTML = \`
+              <div style="flex: 1">
+                <div class="url-info">原始链接: \${url}</div>
+                <div class="cdn-url">CDN 链接: \${result.cdnUrl}</div>
+              </div>
+              <button class="copy-btn" onclick="copyToClipboard('\${result.cdnUrl}', this)">复制</button>
+            \`;
+          }
+
+          resultContainer.appendChild(resultItem);
+        }
       }
 
       function clearAll() {
-        // 清空功能逻辑...
+        document.getElementById("github-input").value = "";
+        document.getElementById("npm-input").value = "";
+        document.getElementById("result-container").innerHTML = "";
       }
     </script>
 </body>
